@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--background-start-rgb)),
+    rgb(var(--background-end-rgb))
+  );
+  min-height: 100vh;
+}
+
+/* MUI overrides */
+.MuiPaper-root {
+  background-color: rgb(var(--background-start-rgb)) !important;
+  color: rgb(var(--foreground-rgb)) !important;
+}
+
+.MuiInputBase-root {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.MuiInputBase-input {
+  color: rgb(var(--foreground-rgb)) !important;
+}
+
+.MuiInputLabel-root {
+  color: rgba(var(--foreground-rgb), 0.7) !important;
+}
+
+.MuiOutlinedInput-notchedOutline {
+  border-color: rgba(var(--foreground-rgb), 0.2) !important;
+}
+
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(var(--foreground-rgb), 0.4) !important;
+}
+
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: rgb(var(--foreground-rgb)) !important;
+} 
