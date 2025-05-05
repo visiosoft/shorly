@@ -65,6 +65,10 @@ model Click {
   ip        String?
   userAgent String?
   referrer  String?
+  country   String?
+  city      String?
+  latitude  Float?
+  longitude Float?
 }
 
 model IpUsage {

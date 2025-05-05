@@ -32,6 +32,7 @@ import {
   ListItemButton,
   alpha,
 } from "@mui/material";
+import Grid from '@mui/material/Unstable_Grid2';
 import {
   Link as LinkIcon,
   BarChart as BarChartIcon,
@@ -48,6 +49,11 @@ import {
 } from "@mui/icons-material";
 import { signOut } from "next-auth/react";
 import toast from "react-hot-toast";
+import dynamic from "next/dynamic";
+
+const CountryMap = dynamic(() => import("@/components/CountryMap"), {
+  ssr: false,
+});
 
 interface Url {
   id: string;
@@ -55,11 +61,14 @@ interface Url {
   original: string;
   clicks: number;
   createdAt: string;
-  lastClick?: {
-    ip: string;
-    userAgent: string;
-    timestamp: string;
-  };
+}
+
+interface AnalyticsData {
+  totalClicks: number;
+  countries: {
+    country: string;
+    clicks: number;
+  }[];
 }
 
 export default function Dashboard() {
@@ -69,6 +78,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const theme = useTheme();
 
   useEffect(() => {
@@ -76,8 +86,19 @@ export default function Dashboard() {
       router.push("/auth/signin");
     } else if (status === "authenticated") {
       fetchUrls();
+      fetchAnalytics();
     }
   }, [status, router]);
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await fetch("/api/analytics/countries");
+      const data = await response.json();
+      setAnalytics(data);
+    } catch (error) {
+      toast.error("Failed to fetch analytics");
+    }
+  };
 
   const fetchUrls = async () => {
     try {
@@ -127,80 +148,36 @@ export default function Dashboard() {
   }
 
   return (
-    <Box sx={{ display: "flex", bgcolor: '#f8fafc' }}>
-      <AppBar 
-        position="fixed" 
-        sx={{ 
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          bgcolor: '#106EBE',
-          color: 'white',
-          boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.05)',
-        }}
-      >
+    <Box sx={{ display: "flex" }}>
+      <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <IconButton
             color="inherit"
+            aria-label="open drawer"
             edge="start"
-            onClick={() => setDrawerOpen(true)}
+            onClick={() => setDrawerOpen(!drawerOpen)}
             sx={{ mr: 2 }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              flexGrow: 1,
-              fontWeight: 600,
-              letterSpacing: '-0.025em',
-            }}
-          >
-            Shorly Dashboard
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            Dashboard
           </Typography>
-          <IconButton
-            onClick={handleMenuOpen}
-            size="small"
-            sx={{ ml: 2 }}
-            aria-controls="menu-appbar"
-            aria-haspopup="true"
-          >
-            <Avatar 
-              sx={{ 
-                width: 32, 
-                height: 32,
-                bgcolor: '#0FFCBE',
-                color: '#106EBE',
-                fontWeight: 600,
-              }}
-            >
+          <IconButton color="inherit" onClick={handleMenuOpen}>
+            <Avatar sx={{ width: 32, height: 32 }}>
               {session?.user?.name?.[0] || session?.user?.email?.[0]}
             </Avatar>
           </IconButton>
           <Menu
-            id="menu-appbar"
             anchorEl={anchorEl}
-            anchorOrigin={{
-              vertical: "bottom",
-              horizontal: "right",
-            }}
-            keepMounted
-            transformOrigin={{
-              vertical: "top",
-              horizontal: "right",
-            }}
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
           >
-            <MenuItem onClick={() => router.push("/dashboard/settings")}>
-              <ListItemIcon>
-                <SettingsIcon fontSize="small" sx={{ color: '#106EBE' }} />
-              </ListItemIcon>
-              <Typography sx={{ color: '#106EBE' }}>Settings</Typography>
-            </MenuItem>
             <MenuItem onClick={() => signOut()}>
               <ListItemIcon>
-                <LogoutIcon fontSize="small" sx={{ color: '#106EBE' }} />
+                <LogoutIcon fontSize="small" />
               </ListItemIcon>
-              <Typography sx={{ color: '#106EBE' }}>Logout</Typography>
+              <ListItemText>Logout</ListItemText>
             </MenuItem>
           </Menu>
         </Toolbar>
@@ -211,55 +188,33 @@ export default function Dashboard() {
         sx={{
           width: 240,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { 
-            width: 240, 
+          [`& .MuiDrawer-paper`]: {
+            width: 240,
             boxSizing: "border-box",
-            bgcolor: 'white',
-            borderRight: '1px solid',
-            borderColor: alpha('#106EBE', 0.1),
           },
         }}
+        open={drawerOpen}
       >
         <Toolbar />
         <Box sx={{ overflow: "auto" }}>
           <List>
-            <ListItemButton 
-              onClick={() => router.push("/dashboard")}
-              sx={{
-                '&:hover': {
-                  bgcolor: alpha('#0FFCBE', 0.1),
-                },
-              }}
-            >
+            <ListItemButton>
               <ListItemIcon>
-                <LinkIcon sx={{ color: '#106EBE' }} />
+                <LinkIcon />
               </ListItemIcon>
-              <ListItemText 
-                primary="My URLs" 
-                primaryTypographyProps={{
-                  fontWeight: 500,
-                  color: '#106EBE',
-                }}
-              />
+              <ListItemText primary="URLs" />
             </ListItemButton>
-            <ListItemButton 
-              onClick={() => router.push("/dashboard/analytics")}
-              sx={{
-                '&:hover': {
-                  bgcolor: alpha('#0FFCBE', 0.1),
-                },
-              }}
-            >
+            <ListItemButton>
               <ListItemIcon>
-                <BarChartIcon sx={{ color: '#106EBE' }} />
+                <BarChartIcon />
               </ListItemIcon>
-              <ListItemText 
-                primary="Analytics" 
-                primaryTypographyProps={{
-                  fontWeight: 500,
-                  color: '#106EBE',
-                }}
-              />
+              <ListItemText primary="Analytics" />
+            </ListItemButton>
+            <ListItemButton>
+              <ListItemIcon>
+                <SettingsIcon />
+              </ListItemIcon>
+              <ListItemText primary="Settings" />
             </ListItemButton>
           </List>
         </Box>
@@ -267,185 +222,131 @@ export default function Dashboard() {
 
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <Toolbar />
-        <Container maxWidth="lg">
-          <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                mb: 0,
-                fontWeight: 700,
-                letterSpacing: '-0.025em',
-                color: '#106EBE',
-              }}
-            >
-              All URLs
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<LinkIcon />}
-              onClick={() => router.push("/")}
-              sx={{
-                bgcolor: '#106EBE',
-                '&:hover': {
-                  bgcolor: '#0d5a9e',
-                },
-                textTransform: 'none',
-                fontWeight: 600,
-                px: 3,
-              }}
-            >
-              Create New URL
-            </Button>
-          </Box>
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            {/* Country Map */}
+            <Box sx={{ flex: '1 1 calc(66.666% - 12px)', minWidth: 300 }}>
+              {analytics && (
+                <Paper elevation={3} sx={{ p: 2, height: "100%" }}>
+                  <Typography variant="h6" gutterBottom>
+                    Click Distribution
+                  </Typography>
+                  <CountryMap
+                    data={analytics.countries}
+                    totalClicks={analytics.totalClicks}
+                  />
+                </Paper>
+              )}
+            </Box>
 
-          <TableContainer 
-            component={Paper} 
-            sx={{ 
-              bgcolor: 'white',
-              borderRadius: 2,
-              border: '1px solid',
-              borderColor: alpha('#106EBE', 0.1),
-            }}
-          >
-            <Table sx={{ minWidth: 650 }} aria-label="URLs table">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: '#106EBE', fontWeight: 600 }}>Short URL</TableCell>
-                  <TableCell sx={{ color: '#106EBE', fontWeight: 600 }}>Original URL</TableCell>
-                  <TableCell sx={{ color: '#106EBE', fontWeight: 600 }}>Clicks</TableCell>
-                  <TableCell sx={{ color: '#106EBE', fontWeight: 600 }}>Last Click</TableCell>
-                  <TableCell sx={{ color: '#106EBE', fontWeight: 600 }}>Created</TableCell>
-                  <TableCell sx={{ color: '#106EBE', fontWeight: 600 }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {urls.map((url) => (
-                  <TableRow
-                    key={url.id}
-                    sx={{
-                      '&:hover': {
-                        bgcolor: alpha('#0FFCBE', 0.05),
-                      },
-                    }}
+            {/* Analytics Summary */}
+            <Box sx={{ flex: '1 1 calc(33.333% - 12px)', minWidth: 300 }}>
+              <Paper elevation={3} sx={{ p: 2, height: "100%" }}>
+                <Typography variant="h6" gutterBottom>
+                  Analytics Summary
+                </Typography>
+                {analytics && (
+                  <>
+                    <Typography variant="h4" color="primary" gutterBottom>
+                      {analytics.totalClicks}
+                    </Typography>
+                    <Typography variant="subtitle1" color="text.secondary">
+                      Total Clicks
+                    </Typography>
+                    <Typography variant="h4" color="primary" sx={{ mt: 2 }} gutterBottom>
+                      {analytics.countries.length}
+                    </Typography>
+                    <Typography variant="subtitle1" color="text.secondary">
+                      Countries Reached
+                    </Typography>
+                  </>
+                )}
+              </Paper>
+            </Box>
+
+            {/* URLs Table */}
+            <Box sx={{ width: '100%' }}>
+              <Paper elevation={3} sx={{ p: 2 }}>
+                <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="h6">Your URLs</Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<LinkIcon />}
+                    onClick={() => router.push("/")}
                   >
-                    <TableCell>
-                      <Typography sx={{ color: '#106EBE', fontWeight: 500 }}>
-                        {url.slug}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography 
-                        sx={{ 
-                          color: '#106EBE',
-                          maxWidth: 300,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {url.original}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={`${url.clicks} clicks`}
-                        size="small"
-                        sx={{
-                          fontWeight: 500,
-                          bgcolor: alpha('#0FFCBE', 0.2),
-                          color: '#106EBE',
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {url.lastClick ? (
-                        <Box>
-                          <Typography variant="caption" sx={{ color: '#106EBE', display: 'block' }}>
-                            {new Date(url.lastClick.timestamp).toLocaleString()}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: '#106EBE', display: 'block' }}>
-                            {url.lastClick.ip}
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Typography variant="caption" sx={{ color: '#106EBE' }}>
-                          No clicks yet
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="caption" sx={{ color: '#106EBE' }}>
-                        {new Date(url.createdAt).toLocaleDateString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Tooltip title="View Analytics">
-                          <IconButton
-                            size="small"
-                            onClick={() => router.push(`/dashboard/analytics/${url.id}`)}
-                            sx={{
-                              color: '#106EBE',
-                              '&:hover': {
-                                bgcolor: alpha('#0FFCBE', 0.1),
-                              },
-                            }}
-                          >
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Copy URL">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleCopy(`${window.location.origin}/${url.slug}`)}
-                            sx={{
-                              color: '#106EBE',
-                              '&:hover': {
-                                bgcolor: alpha('#0FFCBE', 0.1),
-                              },
-                            }}
-                          >
-                            <ContentCopyIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Open URL">
-                          <IconButton
-                            size="small"
-                            component="a"
-                            href={`/${url.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            sx={{
-                              color: '#106EBE',
-                              '&:hover': {
-                                bgcolor: alpha('#0FFCBE', 0.1),
-                              },
-                            }}
-                          >
-                            <OpenInNewIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete URL">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDelete(url.id)}
-                            sx={{
-                              color: '#106EBE',
-                              '&:hover': {
-                                bgcolor: alpha('#0FFCBE', 0.1),
-                              },
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                    Create New URL
+                  </Button>
+                </Box>
+
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Short URL</TableCell>
+                        <TableCell>Original URL</TableCell>
+                        <TableCell align="center">Clicks</TableCell>
+                        <TableCell align="center">Created</TableCell>
+                        <TableCell align="right">Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {urls.map((url) => (
+                        <TableRow key={url.id}>
+                          <TableCell>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <Typography>{url.slug}</Typography>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleCopy(`${window.location.origin}/${url.slug}`)}
+                              >
+                                <ContentCopyIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            <Typography noWrap sx={{ maxWidth: 300 }}>
+                              {url.original}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              icon={<VisibilityIcon />}
+                              label={url.clicks}
+                              color="primary"
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            {new Date(url.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton
+                              color="primary"
+                              onClick={() => window.open(`/${url.slug}`, "_blank")}
+                            >
+                              <OpenInNewIcon />
+                            </IconButton>
+                            <IconButton
+                              color="primary"
+                              onClick={() => router.push(`/dashboard/analytics/${url.id}`)}
+                            >
+                              <BarChartIcon />
+                            </IconButton>
+                            <IconButton
+                              color="error"
+                              onClick={() => handleDelete(url.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </Box>
+          </Box>
         </Container>
       </Box>
     </Box>
